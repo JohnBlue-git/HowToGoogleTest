@@ -4,7 +4,14 @@
 #include <gtest/gtest.h>
 
 using ::testing::_;
+using ::testing::InSequence;
+using ::testing::SaveArg;
 using ::testing::StrictMock;
+
+MATCHER_P(AtLeastTemperature, threshold, "is at least the threshold")
+{
+    return arg >= threshold;
+}
 
 class MockTemperatureObserver : public TemperatureMonitor::Observer {
 public:
@@ -29,4 +36,19 @@ TEST_F(TemperatureMonitorTest, DoesNotNotifyBelowTheThreshold)
     EXPECT_CALL(observer, onHighTemperature(_)).Times(0);
 
     monitor.record(29);
+}
+
+TEST_F(TemperatureMonitorTest, MatchesArgumentsAndChecksCallOrder)
+{
+    int lastReportedTemperature = 0;
+    InSequence sequence;
+    EXPECT_CALL(observer, onHighTemperature(AtLeastTemperature(30)))
+        .WillOnce(SaveArg<0>(&lastReportedTemperature));
+    EXPECT_CALL(observer, onHighTemperature(AtLeastTemperature(30)))
+        .WillOnce(SaveArg<0>(&lastReportedTemperature));
+
+    monitor.record(30);
+    monitor.record(35);
+
+    EXPECT_EQ(lastReportedTemperature, 35);
 }

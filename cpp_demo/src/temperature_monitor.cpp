@@ -2,11 +2,6 @@
 
 #include <algorithm>
 
-int celsiusToFahrenheit(int celsius)
-{
-    return celsius * 9 / 5 + 32;
-}
-
 TemperatureMonitor::TemperatureMonitor(Observer &observer, int threshold)
     : observer_(observer), threshold_(threshold)
 {

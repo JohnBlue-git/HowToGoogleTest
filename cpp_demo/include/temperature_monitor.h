@@ -3,7 +3,11 @@
 
 #include <gtest/gtest_prod.h>
 
-int celsiusToFahrenheit(int celsius);
+template <typename Number>
+constexpr Number celsiusToFahrenheit(Number celsius)
+{
+    return celsius * Number{9} / Number{5} + Number{32};
+}
 
 class TemperatureMonitor {
 public:

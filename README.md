@@ -49,8 +49,8 @@ flowchart TD
     end
 
     subgraph CppExample["C++ example"]
-        CppSource["temperature_monitor.cpp<br/>(C++ implementation)"] --> CppLib["temperature_monitor library"]
-        CppTests["basics_test.cpp<br/>private_member_test.cpp<br/>temperature_monitor_test.cpp"] --> CppRunner["cpp_demo_tests"]
+        CppSource["temperature_monitor.cpp<br/>temperature_input.cpp"] --> CppLib["temperature_monitor library"]
+        CppTests["basic and advanced C++ tests"] --> CppRunner["cpp_demo_tests"]
         CppLib --> CppRunner
         Mock["MockTemperatureObserver<br/>(GoogleMock)"] --> CppTests
     end
@@ -125,7 +125,8 @@ flowchart LR
 `TemperatureMonitor` depends on its `Observer` interface.
 `MockTemperatureObserver` and `EXPECT_CALL` show how to isolate the monitor
 from that dependency, verify interactions, and check that no notification is
-sent when the threshold is not reached.
+sent when the threshold is not reached. The advanced tests also define a
+custom matcher, use actions to capture arguments, and enforce call order.
 
 ```mermaid
 flowchart LR
@@ -139,6 +140,54 @@ flowchart LR
     Expect --> NoNotifyCheck["Verify zero calls"]
 ```
 
+### 5. Advanced GoogleTest and GoogleMock
+
+The advanced examples in `cpp_demo/tests/` extend the basics with:
+
+- **Custom matchers and ordered mock actions:** `AtLeastTemperature` matches
+  callback arguments; `InSequence` and `SaveArg` verify order and capture
+  values.
+- **Typed tests:** `TemperatureConversionTypedTest` runs the same conversion
+  contract for `int`, `long`, and `double`.
+- **Fixture and global-environment lifecycle:** `FixtureLifecycleTest`
+  demonstrates `SetUp`/`TearDown`; `DemoEnvironment` is initialized once for
+  the test program. A custom event listener prints a final test summary.
+- **Exceptions and death tests:** `parseCelsius` rejects malformed input with
+  `std::invalid_argument`; a test-only fail-fast function demonstrates
+  `EXPECT_DEATH`.
+- **Filtering, XML output, and sharding:** pass GoogleTest flags directly to
+  the C++ test executable.
+
+```mermaid
+flowchart TD
+    Typed["Typed tests<br/>int, long, double"] --> Conversion["Celsius conversion contract"]
+    Matcher["Custom matcher + ordered mock actions"] --> Mocked["TemperatureMonitor observer calls"]
+    Fixture["Fixture SetUp / TearDown"] --> FixtureTest["Fixture lifecycle test"]
+    Environment["Global environment"] --> Tests["C++ test program"]
+    Parser["parseCelsius"] --> ExceptionTest["EXPECT_THROW"]
+    FailFast["Test-only fail-fast helper"] --> DeathTest["EXPECT_DEATH"]
+    FixtureTest --> Tests
+    Conversion --> Tests
+    Mocked --> Tests
+    ExceptionTest --> Tests
+    DeathTest --> Tests
+    Tests --> Listener["Event listener summary"]
+```
+
+Examples:
+
+```sh
+# Select test suites or individual tests.
+./build/cpp_demo/cpp_demo_tests --gtest_filter='TemperatureMonitorTest.*'
+./build/cpp_demo/cpp_demo_tests --gtest_filter='AdvancedAssertionsTest.*'
+
+# Write GoogleTest's machine-readable report.
+./build/cpp_demo/cpp_demo_tests --gtest_output=xml:build/cpp-tests.xml
+
+# Run one shard of a larger test suite.
+GTEST_TOTAL_SHARDS=2 GTEST_SHARD_INDEX=0 ./build/cpp_demo/cpp_demo_tests
+```
+
 ## Project layout
 
 ```text
@@ -149,11 +198,19 @@ c_demo/
   tests/calculator_test.cpp
 cpp_demo/
   include/temperature_monitor.h
-  src/temperature_monitor.cpp
+  include/temperature_input.h
+  src/
+    temperature_monitor.cpp
+    temperature_input.cpp
   tests/
     basics_test.cpp
+    advanced_assertions_test.cpp
+    fixture_lifecycle_test.cpp
     private_member_test.cpp
     temperature_monitor_test.cpp
+    temperature_types_test.cpp
+    test_main.cpp
+    test_support.h
 ```
 
 The root `CMakeLists.txt` fetches GoogleTest and adds both examples. Each
